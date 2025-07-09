@@ -1,0 +1,155 @@
+import csv
+import os
+
+PRODUCTS_FILE = 'products.csv'
+ORDERS_FILE = 'orders.csv'
+
+def initialize_files():
+    if not os.path.exists(PRODUCTS_FILE):
+        with open(PRODUCTS_FILE, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['ID', 'Seller', 'Product Name', 'Price', 'Stock'])
+
+    if not os.path.exists(ORDERS_FILE):
+        with open(ORDERS_FILE, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Buyer', 'Product ID', 'Product Name', 'Quantity', 'Total'])
+
+def show_menu():
+    print("\n--- Welcome to MiniShop (Python Shopify Clone) ---")
+    print("1. I'm a Seller")
+    print("2. I'm a Buyer")
+    print("3. Exit")
+
+def seller_menu(seller_name):
+    while True:
+        print("\n--- Seller Menu ---")
+        print("1. Add Product")
+        print("2. View My Products")
+        print("3. Go Back")
+
+        choice = input("Enter choice: ")
+        if choice == '1':
+            add_product(seller_name)
+        elif choice == '2':
+            view_products(seller_name)
+        elif choice == '3':
+            break
+        else:
+            print("Invalid choice!")
+
+def add_product(seller):
+    name = input("Enter product name: ")
+    price = input("Enter price: ")
+    stock = input("Enter quantity: ")
+
+    with open(PRODUCTS_FILE, 'r') as f:
+        reader = list(csv.reader(f))
+        next_id = len(reader)
+
+    with open(PRODUCTS_FILE, 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([next_id, seller, name, price, stock])
+
+    print(f"Product '{name}' added successfully.")
+
+def view_products(seller=None):
+    with open(PRODUCTS_FILE, 'r') as f:
+        reader = csv.reader(f)
+        products = list(reader)
+
+    if len(products) <= 1:
+        print("No products found.")
+        return
+
+    print("\n--- Product Listings ---")
+    headers = products[0]
+    print(f"{headers[0].ljust(5)} {headers[1].ljust(10)} {headers[2].ljust(20)} {headers[3].ljust(8)} {headers[4].ljust(6)}")
+    print("-" * 60)
+
+    for row in products[1:]:
+        if seller is None or row[1] == seller:
+            print(f"{row[0].ljust(5)} {row[1].ljust(10)} {row[2].ljust(20)} ₹{row[3].ljust(6)} {row[4].ljust(6)}")
+
+def buyer_menu(buyer_name):
+    while True:
+        print("\n--- Buyer Menu ---")
+        print("1. View Products")
+        print("2. Buy Product")
+        print("3. View My Orders")
+        print("4. Go Back")
+
+        choice = input("Enter choice: ")
+        if choice == '1':
+            view_products()
+        elif choice == '2':
+            buy_product(buyer_name)
+        elif choice == '3':
+            view_orders(buyer_name)
+        elif choice == '4':
+            break
+        else:
+            print("Invalid choice!")
+
+def buy_product(buyer):
+    view_products()
+    pid = input("Enter Product ID to buy: ")
+    quantity = int(input("Enter quantity: "))
+
+    products = []
+    bought = False
+
+    with open(PRODUCTS_FILE, 'r') as f:
+        reader = csv.reader(f)
+        header = next(reader)
+        for row in reader:
+            if row[0] == pid and int(row[4]) >= quantity:
+                total = int(row[3]) * quantity
+                row[4] = str(int(row[4]) - quantity)
+                bought = True
+                with open(ORDERS_FILE, 'a', newline='') as o:
+                    writer = csv.writer(o)
+                    writer.writerow([buyer, row[0], row[2], quantity, total])
+            products.append(row)
+
+    if bought:
+        with open(PRODUCTS_FILE, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(header)
+            writer.writerows(products)
+        print("Purchase successful!")
+    else:
+        print("Product not available or insufficient stock.")
+
+def view_orders(buyer):
+    with open(ORDERS_FILE, 'r') as f:
+        reader = csv.reader(f)
+        orders = list(reader)
+
+    print("\n--- Your Orders ---")
+    headers = orders[0]
+    print(f"{headers[1].ljust(10)} {headers[2].ljust(20)} {headers[3].ljust(10)} {headers[4].ljust(10)}")
+    print("-" * 55)
+
+    for order in orders[1:]:
+        if order[0] == buyer:
+            print(f"{order[1].ljust(10)} {order[2].ljust(20)} {order[3].ljust(10)} ₹{str(order[4]).ljust(8)}")
+
+# MAIN
+if __name__ == "__main__":
+    initialize_files()
+    while True:
+        show_menu()
+        choice = input("Enter choice: ")
+
+        if choice == '1':
+            name = input("Enter your seller name: ")
+            seller_menu(name)
+        elif choice == '2':
+            name = input("Enter your buyer name: ")
+            buyer_menu(name)
+        elif choice == '3':
+            print("Goodbye!")
+            break
+        else:
+            print("Invalid input!")
